@@ -5,6 +5,7 @@ import cv2
 import time
 import numpy as np
 from datetime import datetime, timedelta
+from pytz import timezone
 from pathlib import Path
 from PIL import Image
 import warnings
@@ -19,8 +20,15 @@ from utils.file_utils import log_detection
 
 # Helper function to convert frame number to video timestamp
 def frame_to_timestamp(frame_num, fps):
-    total_seconds = frame_num / fps
-    return str(timedelta(seconds=int(total_seconds)))
+    # Define IST timezone
+    ist = timezone('Asia/Kolkata')
+    # Get current IST time
+    now_ist = datetime.now(ist)
+    total_seconds_video = int(frame_num / fps)
+    video_time = str(timedelta(seconds=total_seconds_video)).zfill(8)
+    date_str = now_ist.strftime("%d-%m-%Y-%H-%M-%S")
+    return f"{date_str} ({video_time})"
+
 
 # Page configuration
 st.set_page_config(page_title="Vision Sense - Pilferage Detection", layout="wide")
@@ -185,6 +193,10 @@ def main():
         st.success(f"Uploaded: {uploaded_file.name}")
 
         if st.button("Process Video"):
+            log_file_path = os.path.join(LOG_DIR, "detections.csv")
+            if os.path.exists(log_file_path):
+                os.remove(log_file_path)
+
             with st.spinner("Processing video... This may take a few moments."):
                 processed_path, alert_segments = process_video(video_path)
                 st.success("✅ Processing complete!")
